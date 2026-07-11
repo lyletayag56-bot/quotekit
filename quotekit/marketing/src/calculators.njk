@@ -1,0 +1,66 @@
+---
+layout: layout.njk
+pagination:
+  data: industries
+  size: 1
+  alias: calc
+permalink: "/calculators/{{ calc.slug }}/"
+eleventyComputed:
+  title: "{{ calc.pageTitle }}"
+  description: "{{ calc.metaDescription }}"
+---
+
+<section class="hero ruled hero-landing">
+  <div class="shell hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow">Free template · {{ calc.name }}</p>
+      <h1>{{ calc.h1 | capitalize }}</h1>
+      <p class="hero-sub">{{ calc.intro }}</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary btn-lg" href="/app/">Put this on my site</a>
+      </div>
+      <p class="hero-fine mono">One script tag · your rates · free to start</p>
+    </div>
+    <div class="hero-demo">
+      <div class="demo-card">
+        <p class="demo-label mono">Live demo — try it</p>
+        <script async src="/widget.js" data-config='{{ calc.config | jsonAttr | safe }}'></script>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="shell narrow">
+    {%- for para in calc.body %}
+    <p class="body-copy">{{ para }}</p>
+    {%- endfor %}
+
+    <div class="steps-inline">
+      <h2>Make it yours in three steps</h2>
+      <ol class="estimate-lines">
+        <li><span class="line-label">Create a free account and pick the {{ calc.name | lower }} template</span><span class="leader"></span><span class="line-value mono">01</span></li>
+        <li><span class="line-label">Swap in your real rates and adjust the formula</span><span class="leader"></span><span class="line-value mono">02</span></li>
+        <li><span class="line-label">Paste the embed code on your site — leads start arriving</span><span class="leader"></span><span class="line-value mono">03</span></li>
+      </ol>
+      <a class="btn btn-primary" href="/app/">Start with this template</a>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="shell">
+    <p class="eyebrow">More trades</p>
+    <h2>Calculators for the rest of the crew</h2>
+    <div class="calc-grid">
+      {%- for other in industries %}
+      {%- if other.slug != calc.slug %}
+      <a class="calc-tile" href="/calculators/{{ other.slug }}/">
+        <h3>{{ other.config.title }}</h3>
+        <span class="tile-cta">See it live →</span>
+      </a>
+      {%- endif %}
+      {%- endfor %}
+    </div>
+  </div>
+</section>

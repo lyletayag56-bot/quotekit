@@ -1,0 +1,13 @@
+{
+  "name": "quotekit-marketing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "eleventy",
+    "watch": "eleventy --watch"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.0.0"
+  }
+}

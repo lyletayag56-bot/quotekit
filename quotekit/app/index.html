@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QuoteKit — Dashboard</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/app.css" />
+
+  <!-- The real widget bundle powers the builder's live preview via
+       window.QuoteKit.mount(). What you see is exactly what embeds. -->
+  <script src="/widget.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/expr-eval@2.0.2/dist/bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body x-data="app">
+
+  <!-- ======================= AUTH ======================= -->
+  <div class="auth-wrap" x-show="ready && !user" x-cloak>
+    <div class="auth-card">
+      <div class="brand"><span class="brand-bolt">⚡</span>QuoteKit</div>
+      <p class="auth-sub">Instant-quote calculators for your website. Sign in to build yours.</p>
+
+      <div class="tabs">
+        <button class="tab" :class="{ 'is-active': authMode === 'signin' }" @click="authMode = 'signin'; authError = ''">Sign in</button>
+        <button class="tab" :class="{ 'is-active': authMode === 'signup' }" @click="authMode = 'signup'; authError = ''">Create account</button>
+      </div>
+
+      <label class="field">
+        <span>Email</span>
+        <input type="email" x-model="email" autocomplete="email" @keydown.enter="submitAuth()" />
+      </label>
+      <label class="field">
+        <span>Password</span>
+        <input type="password" x-model="password" :autocomplete="authMode === 'signup' ? 'new-password' : 'current-password'" @keydown.enter="submitAuth()" />
+      </label>
+
+      <p class="form-error" x-show="authError" x-text="authError"></p>
+
+      <button class="btn btn-primary btn-block" :disabled="authBusy" @click="submitAuth()">
+        <span x-text="authMode === 'signup' ? 'Create account' : 'Sign in'"></span>
+      </button>
+      <button class="btn btn-ghost btn-block" :disabled="authBusy" @click="googleSignIn()">Continue with Google</button>
+      <button class="linklike" x-show="authMode === 'signin'" @click="resetPassword()">Forgot password?</button>
+    </div>
+  </div>
+
+  <!-- ======================= APP ======================= -->
+  <div x-show="ready && user" x-cloak>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/"><span class="brand-bolt">⚡</span>QuoteKit</a>
+        <nav class="topnav">
+          <button :class="{ 'is-active': view === 'calculators' }" @click="go('calculators')">Calculators</button>
+          <button :class="{ 'is-active': view === 'leads' }" @click="go('leads')">Leads</button>
+          <button :class="{ 'is-active': view === 'billing' }" @click="go('billing')">Billing</button>
+          <button :class="{ 'is-active': view === 'settings' }" @click="go('settings')">Settings</button>
+        </nav>
+        <div class="topbar-right">
+          <span class="chip chip-plan" x-text="planLabel()"></span>
+          <button class="linklike" @click="doSignOut()">Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="notice" x-show="notice" x-cloak>
+      <span x-text="notice"></span>
+      <button class="linklike" @click="notice = ''">Dismiss</button>
+    </div>
+
+    <main class="wrap">
+
+      <!-- ============ CALCULATOR LIST ============ -->
+      <section x-show="view === 'calculators' && !editing">
+        <div class="page-head">
+          <h1>Calculators</h1>
+          <div class="menu-anchor">
+            <button class="btn btn-primary" @click="newMenu = !newMenu">New calculator</button>
+            <div class="menu" x-show="newMenu" @click.outside="newMenu = false" x-cloak>
+              <template x-for="t in templates" :key="t.id">
+                <button class="menu-item" @click="createCalc(t)">
+                  <strong x-text="t.name"></strong>
+                  <span x-text="t.hint"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty" x-show="calcs.length === 0">
+          <h2>No calculators yet</h2>
+          <p>Create one from a template, paste one script tag on your site, and quotes start turning into leads.</p>
+          <button class="btn btn-primary" @click="newMenu = true">Create your first calculator</button>
+        </div>
+
+        <div class="card-grid">
+          <template x-for="c in calcs" :key="c.id">
+            <article class="calc-card">
+              <div class="calc-card-head">
+                <h3 x-text="c.title"></h3>
+                <span class="chip" :class="c.published ? 'chip-live' : 'chip-draft'" x-text="c.published ? 'Live' : 'Draft'"></span>
+              </div>
+              <p class="calc-meta">
+                <span class="mono" x-text="c.plan"></span>
+                <span x-show="c.active === false" class="chip chip-dark">widget dark</span>
+              </p>
+              <div class="calc-actions">
+                <button class="btn btn-small" @click="edit(c)">Edit</button>
+                <button class="btn btn-small" @click="openLeadsFor(c.id)">Leads</button>
+                <button class="btn btn-small" @click="embedFor = c">Embed code</button>
+                <button class="btn btn-small" x-show="c.active === false && c.plan !== 'free'" @click="republishFree(c)">Re-publish on Free</button>
+                <button class="btn btn-small btn-danger" @click="removeCalc(c)">Delete</button>
+              </div>
+            </article>
+          </template>
+        </div>
+      </section>
+
+      <!-- ============ BUILDER ============ -->
+      <section x-show="view === 'calculators' && editing" x-cloak>
+        <div class="page-head builder-head">
+          <button class="linklike" @click="closeEditor()">← All calculators</button>
+          <div class="builder-head-actions">
+            <span class="save-state mono" x-text="saveState"></span>
+            <label class="switch">
+              <input type="checkbox" x-model="editing.published" />
+              <span>Published</span>
+            </label>
+            <button class="btn btn-small" @click="embedFor = editing">Embed code</button>
+            <button class="btn btn-primary" :disabled="saving" @click="save()">Save changes</button>
+          </div>
+        </div>
+
+        <div class="builder" x-show="editing">
+          <div class="builder-form">
+
+            <div class="panel">
+              <h2 class="panel-title">Basics</h2>
+              <label class="field"><span>Calculator title</span>
+                <input type="text" x-model="editing.title" maxlength="120" />
+              </label>
+            </div>
+
+            <div class="panel">
+              <h2 class="panel-title">Customer inputs</h2>
+              <template x-for="(f, i) in editing.fields" :key="i">
+                <div class="field-editor">
+                  <div class="field-editor-row">
+                    <label class="field grow"><span>Label</span>
+                      <input type="text" x-model="f.label" @change="if (!f.key) f.key = slug(f.label)" />
+                    </label>
+                    <label class="field"><span>Variable</span>
+                      <input type="text" class="mono" x-model="f.key" @change="f.key = slug(f.key)" />
+                    </label>
+                    <label class="field"><span>Type</span>
+                      <select x-model="f.type">
+                        <option value="number">Number</option>
+                        <option value="select">Dropdown</option>
+                        <option value="checkbox">Checkbox</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div class="field-editor-row" x-show="f.type === 'number'">
+                    <label class="field"><span>Min</span><input type="number" x-model.number="f.min" /></label>
+                    <label class="field"><span>Max</span><input type="number" x-model.number="f.max" /></label>
+                    <label class="field"><span>Step</span><input type="number" x-model.number="f.step" /></label>
+                    <label class="field"><span>Default</span><input type="number" x-model.number="f.default" /></label>
+                  </div>
+
+                  <div x-show="f.type === 'select'">
+                    <template x-for="(o, oi) in f.options" :key="oi">
+                      <div class="field-editor-row option-row">
+                        <label class="field grow"><span>Option label</span><input type="text" x-model="o.label" /></label>
+                        <label class="field"><span>Value</span><input type="number" step="any" x-model.number="o.value" /></label>
+                        <label class="opt-default"><input type="checkbox" :checked="o.default" @change="setDefaultOption(f, oi, $event.target.checked)" /> default</label>
+                        <button class="icon-btn" title="Remove option" @click="f.options.splice(oi, 1)">✕</button>
+                      </div>
+                    </template>
+                    <button class="btn btn-small" @click="addOption(f)">+ Add option</button>
+                  </div>
+
+                  <div class="field-editor-row" x-show="f.type === 'checkbox'">
+                    <label class="field"><span>Value when checked</span><input type="number" step="any" x-model.number="f.checkedValue" /></label>
+                    <label class="field"><span>When unchecked</span><input type="number" step="any" x-model.number="f.uncheckedValue" /></label>
+                    <label class="opt-default"><input type="checkbox" x-model="f.default" /> checked by default</label>
+                  </div>
+
+                  <div class="field-editor-tools">
+                    <button class="icon-btn" title="Move up" :disabled="i === 0" @click="move(i, -1)">↑</button>
+                    <button class="icon-btn" title="Move down" :disabled="i === editing.fields.length - 1" @click="move(i, 1)">↓</button>
+                    <button class="icon-btn" title="Remove input" @click="editing.fields.splice(i, 1)">✕</button>
+                  </div>
+                </div>
+              </template>
+              <div class="row-gap">
+                <button class="btn btn-small" @click="addField('number')">+ Number</button>
+                <button class="btn btn-small" @click="addField('select')">+ Dropdown</button>
+                <button class="btn btn-small" @click="addField('checkbox')">+ Checkbox</button>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h2 class="panel-title">Your rates <span class="panel-hint">(constants customers never see)</span></h2>
+              <template x-for="(c, ci) in constantRows" :key="ci">
+                <div class="field-editor-row option-row">
+                  <label class="field grow"><span>Name</span><input type="text" class="mono" x-model="c.key" @change="c.key = slug(c.key)" /></label>
+                  <label class="field"><span>Value</span><input type="number" step="any" x-model.number="c.value" /></label>
+                  <button class="icon-btn" title="Remove" @click="constantRows.splice(ci, 1)">✕</button>
+                </div>
+              </template>
+              <button class="btn btn-small" @click="constantRows.push({ key: '', value: 0 })">+ Add rate</button>
+            </div>
+
+            <div class="panel">
+              <h2 class="panel-title">Formula</h2>
+              <textarea class="mono formula-input" rows="2" x-model="editing.formula" spellcheck="false"></textarea>
+              <p class="formula-status" :class="formulaCheck().ok ? 'is-ok' : 'is-bad'" x-text="formulaCheck().message"></p>
+              <div class="chips">
+                <template x-for="v in availableVars()" :key="v">
+                  <code class="chip mono" x-text="v"></code>
+                </template>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h2 class="panel-title">Result line</h2>
+              <div class="field-editor-row">
+                <label class="field grow"><span>Label</span><input type="text" x-model="editing.result.label" /></label>
+                <label class="field"><span>Prefix</span><input type="text" x-model="editing.result.prefix" size="4" /></label>
+                <label class="field"><span>Suffix</span><input type="text" x-model="editing.result.suffix" size="6" /></label>
+                <label class="field"><span>Decimals</span><input type="number" min="0" max="4" x-model.number="editing.result.decimals" /></label>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h2 class="panel-title">Lead capture</h2>
+              <label class="switch"><input type="checkbox" x-model="editing.leadCapture.enabled" /><span>Collect contact details</span></label>
+              <div x-show="editing.leadCapture.enabled">
+                <label class="switch"><input type="checkbox" x-model="editing.leadCapture.gate" /><span>Blur the result until they share their email (gate)</span></label>
+                <div class="row-gap">
+                  <label class="opt-default"><input type="checkbox" checked disabled /> email (always)</label>
+                  <label class="opt-default"><input type="checkbox" :checked="editing.leadCapture.fields.includes('name')" @change="toggleLeadField('name', $event.target.checked)" /> name</label>
+                  <label class="opt-default"><input type="checkbox" :checked="editing.leadCapture.fields.includes('phone')" @change="toggleLeadField('phone', $event.target.checked)" /> phone</label>
+                </div>
+                <label class="field"><span>Button text</span><input type="text" x-model="editing.leadCapture.cta" /></label>
+                <label class="field"><span>Success message</span><input type="text" x-model="editing.leadCapture.successMessage" /></label>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h2 class="panel-title">Theme</h2>
+              <div class="field-editor-row">
+                <label class="field"><span>Accent color</span><input type="color" x-model="editing.theme.accent" /></label>
+                <label class="field"><span>Corner radius</span><input type="number" min="0" max="24" x-model.number="editing.theme.radius" /></label>
+              </div>
+            </div>
+          </div>
+
+          <aside class="builder-preview">
+            <div class="preview-sticky">
+              <h2 class="panel-title">Live preview <span class="panel-hint">(the real widget)</span></h2>
+              <div x-ref="preview" x-effect="refreshPreview(previewSignature())"></div>
+              <p class="panel-hint" x-show="!widgetAvailable">Run <code class="mono">npm run build:widget</code> so /widget.js exists, then reload.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ============ LEADS ============ -->
+      <section x-show="view === 'leads'" x-cloak>
+        <div class="page-head">
+          <h1>Leads</h1>
+          <div class="row-gap">
+            <select x-model="leadFilter">
+              <option value="all">All calculators</option>
+              <template x-for="c in calcs" :key="c.id">
+                <option :value="c.id" x-text="c.title"></option>
+              </template>
+            </select>
+            <button class="btn btn-small" :disabled="filteredLeads().length === 0" @click="exportCsv()">Export CSV</button>
+          </div>
+        </div>
+
+        <div class="panel chart-panel">
+          <h2 class="panel-title">Leads — last 30 days</h2>
+          <div class="chart-holder"><canvas id="leadsChart" height="220"></canvas></div>
+        </div>
+
+        <div class="empty" x-show="filteredLeads().length === 0">
+          <h2>No leads yet</h2>
+          <p>Publish a calculator and drop the embed code on your site — leads land here the moment someone asks for a quote.</p>
+        </div>
+
+        <div class="panel" x-show="filteredLeads().length > 0">
+          <table class="lead-table">
+            <thead>
+              <tr><th>When</th><th>Name</th><th>Email</th><th>Phone</th><th class="num">Quoted</th><th>Calculator</th></tr>
+            </thead>
+            <tbody>
+              <template x-for="l in filteredLeads()" :key="l.id">
+                <tr>
+                  <td class="mono" x-text="fmtDate(l.createdAt)"></td>
+                  <td x-text="l.contact?.name || '—'"></td>
+                  <td x-text="l.contact?.email || '—'"></td>
+                  <td x-text="l.contact?.phone || '—'"></td>
+                  <td class="num mono" x-text="'$' + Number(l.result || 0).toLocaleString()"></td>
+                  <td x-text="calcTitle(l.calcId)"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ BILLING ============ -->
+      <section x-show="view === 'billing'" x-cloak>
+        <div class="page-head"><h1>Billing</h1></div>
+
+        <div class="panel">
+          <h2 class="panel-title">Current plan</h2>
+          <p>You're on <strong class="mono" x-text="planLabel()"></strong><span x-show="sub"> — renews <span x-text="fmtDate(sub?.current_period_end)"></span></span>.</p>
+          <p class="panel-hint" x-show="!sub">Free includes 1 live calculator with the "Powered by QuoteKit" badge. Upgrade to remove the badge and unlock lead email alerts.</p>
+          <button class="btn" x-show="sub" :disabled="billingBusy" @click="openPortal()">Manage subscription</button>
+        </div>
+
+        <p class="form-error" x-show="billingError" x-text="billingError"></p>
+
+        <div class="card-grid">
+          <template x-for="p in products" :key="p.id">
+            <article class="calc-card plan-card">
+              <h3 x-text="p.name"></h3>
+              <p class="panel-hint" x-text="p.description"></p>
+              <template x-for="price in p.prices" :key="price.id">
+                <div class="price-row">
+                  <span class="price mono"><span x-text="fmtPrice(price)"></span><small>/<span x-text="price.interval"></span></small></span>
+                  <button class="btn btn-primary btn-small" :disabled="billingBusy" @click="checkout(price.id)">Choose</button>
+                </div>
+              </template>
+            </article>
+          </template>
+        </div>
+        <p class="panel-hint" x-show="products.length === 0">No plans found — install the Stripe extension and create your Starter/Pro products (see the README), then reload.</p>
+      </section>
+
+      <!-- ============ SETTINGS ============ -->
+      <section x-show="view === 'settings'" x-cloak>
+        <div class="page-head"><h1>Settings</h1></div>
+        <div class="panel">
+          <h2 class="panel-title">Lead alerts</h2>
+          <label class="switch"><input type="checkbox" x-model="settings.leadAlerts" /><span>Email me when a new lead comes in</span></label>
+          <label class="field"><span>Send alerts to</span>
+            <input type="email" x-model="settings.notifyEmail" placeholder="you@company.com" />
+          </label>
+          <div class="row-gap">
+            <button class="btn btn-primary" @click="saveSettings()">Save settings</button>
+            <span class="save-state mono" x-text="settingsState"></span>
+          </div>
+          <p class="panel-hint">Alerts are delivered by the Trigger Email extension — see the README to wire it to Resend or Brevo.</p>
+        </div>
+        <div class="panel">
+          <h2 class="panel-title">Account</h2>
+          <p>Signed in as <strong x-text="user?.email"></strong></p>
+          <button class="btn" @click="doSignOut()">Sign out</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============ EMBED MODAL ============ -->
+    <div class="modal-backdrop" x-show="embedFor" x-cloak @click.self="embedFor = null" @keydown.escape.window="embedFor = null">
+      <div class="modal" role="dialog" aria-label="Embed code">
+        <h2 class="panel-title">Embed on your site</h2>
+        <p>Paste this once, wherever the calculator should appear:</p>
+        <textarea class="mono embed-code" rows="3" readonly x-text="embedSnippet(embedFor)" @click="$event.target.select()"></textarea>
+        <div class="row-gap">
+          <button class="btn btn-primary" @click="copyEmbed()">
+            <span x-text="copied ? 'Copied ✓' : 'Copy code'"></span>
+          </button>
+          <button class="btn" @click="embedFor = null">Done</button>
+        </div>
+        <p class="panel-hint">The widget renders in place of the tag. It's isolated in a Shadow DOM, so your site's styles stay untouched. Unpublish here and it disappears there.</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

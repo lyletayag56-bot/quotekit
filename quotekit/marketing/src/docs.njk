@@ -1,0 +1,48 @@
+---
+layout: layout.njk
+title: "Embed docs — add QuoteKit to any website | QuoteKit"
+description: "How to embed a QuoteKit calculator: the script tag, placement options, styling isolation, lifecycle behavior, and the JavaScript API."
+permalink: "/docs/"
+---
+
+<section class="section docs">
+  <div class="shell narrow">
+    <p class="eyebrow">Docs</p>
+    <h1>Embedding your calculator</h1>
+
+    <h2>The snippet</h2>
+    <p>In your dashboard, open a calculator and choose <strong>Embed code</strong>. You'll get one tag:</p>
+    <pre class="code-block mono">&lt;script async src="{{ site.url }}/widget.js" data-calc-id="YOUR_CALC_ID"&gt;&lt;/script&gt;</pre>
+    <p>Paste it wherever the calculator should appear. The widget renders in place of the tag, sized to its container, up to 460px wide. That's the whole integration.</p>
+
+    <h2>Attributes</h2>
+    <ul class="doc-list">
+      <li><code class="mono">data-calc-id</code> — required. The calculator to load; comes from your embed code.</li>
+      <li><code class="mono">data-target="#quote-here"</code> — optional. Render into an existing element instead of next to the script tag (useful when your builder only lets you add scripts in the page head).</li>
+      <li><code class="mono">async</code> — recommended. The widget never blocks your page load.</li>
+    </ul>
+    <p>You can place multiple tags with different <code class="mono">data-calc-id</code> values on one page.</p>
+
+    <h2>It won't fight your theme</h2>
+    <p>The widget renders inside a Shadow DOM: its styles are fully isolated, so your site's CSS can't break the calculator and the calculator can't restyle your site. Accent color and corner radius are set per-calculator in the dashboard's Theme panel.</p>
+
+    <h2>Lifecycle</h2>
+    <ul class="doc-list">
+      <li><strong>Edits go live fast.</strong> Config is cached briefly; rate and copy changes appear on your site within about five minutes.</li>
+      <li><strong>Unpublish</strong> in the dashboard and the embedded widget quietly disappears (a small "temporarily unavailable" note for anyone mid-visit).</li>
+      <li><strong>If a paid plan lapses,</strong> the widget pauses the same way until you resubscribe or re-publish the calculator on the Free plan.</li>
+    </ul>
+
+    <h2>What a lead contains</h2>
+    <p>When a visitor submits the form, your dashboard receives: the contact fields you enabled (email always; name and phone optional), every calculator input as entered, the quoted amount they saw, a timestamp, and the page URL the widget was on. Mention the calculator in your site's privacy policy if you have one.</p>
+
+    <h2>JavaScript API (optional)</h2>
+    <p>The script exposes <code class="mono">window.QuoteKit</code> for advanced setups:</p>
+    <pre class="code-block mono">// Re-scan the page after injecting tags dynamically (SPAs):
+QuoteKit.scan();
+
+// Render a config object directly into an element:
+QuoteKit.mount(document.querySelector('#demo'), configObject);</pre>
+    <p>Most sites never need this — the script tag handles everything on normal pages.</p>
+  </div>
+</section>

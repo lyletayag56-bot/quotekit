@@ -1,0 +1,180 @@
+rules_version = '2';
+
+// QuoteKit — security rules ARE the backend.
+//
+// Collections:
+//   calculators/{calcId}   public GET when published (the widget's config read)
+//   leads/{leadId}         create-only from the anonymous widget, owner-only read
+//   customers/{uid}/...    written by the Stripe extension (Admin SDK bypasses rules)
+//   products/{id}/...      synced from Stripe by the extension, public read
+//   settings/{uid}         owner-managed notification prefs
+//   mail/{id}              written only by Cloud Functions (Trigger Email queue)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // ------------------------------------------------------------------
+    // calculators — widget config, publicly GET-able when published
+    // ------------------------------------------------------------------
+    match /calculators/{calcId} {
+
+      function validCalculator(d) {
+        return d.keys().hasAll([
+            'ownerUid', 'title', 'published', 'plan', 'active',
+            'fields', 'formula', 'constants', 'result', 'leadCapture',
+            'theme', 'createdAt', 'updatedAt'
+          ])
+          && d.ownerUid is string
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+          && d.published is bool
+          && d.plan in ['free', 'starter', 'pro']
+          && d.active is bool
+          && d.fields is list && d.fields.size() <= 30
+          && d.formula is string && d.formula.size() > 0 && d.formula.size() <= 500
+          && d.constants is map && d.constants.keys().size() <= 30
+          && d.result is map
+          && d.leadCapture is map
+          && d.theme is map;
+      }
+
+      // The widget fetches a single document by id. `get` (not `read`) so the
+      // public can never LIST/scan the collection.
+      allow get: if resource.data.published == true
+                 || isOwner(resource.data.ownerUid);
+
+      // Owners list their own calculators (query must filter ownerUid == uid).
+      allow list: if isOwner(resource.data.ownerUid);
+
+      // New calculators are always created on the free tier. Only the
+      // subscription-sync Cloud Function (Admin SDK) can set plan to a paid
+      // value — clients cannot forge a paid plan.
+      allow create: if isOwner(incoming().ownerUid)
+        && validCalculator(incoming())
+        && incoming().plan == 'free'
+        && incoming().active == true
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      // Owners may edit content, but:
+      //  - ownership can't be transferred
+      //  - createdAt is immutable, updatedAt must be server time
+      //  - plan/active must stay untouched, with ONE exception: an explicit
+      //    downgrade to (plan='free', active=true) — that's the "my sub
+      //    lapsed, re-publish with the badge" path.
+      allow update: if isOwner(resource.data.ownerUid)
+        && incoming().ownerUid == resource.data.ownerUid
+        && validCalculator(incoming())
+        && incoming().createdAt == resource.data.createdAt
+        && incoming().updatedAt == request.time
+        && (
+             (incoming().plan == resource.data.plan
+              && incoming().active == resource.data.active)
+          || (incoming().plan == 'free' && incoming().active == true)
+        );
+
+      allow delete: if isOwner(resource.data.ownerUid);
+    }
+
+    // ------------------------------------------------------------------
+    // leads — anonymous create from the widget, heavily validated
+    // ------------------------------------------------------------------
+    match /leads/{leadId} {
+
+      function calcDoc() {
+        return get(/databases/$(database)/documents/calculators/$(incoming().calcId));
+      }
+
+      // Anyone may create a lead, but ONLY with exactly this shape, ONLY for
+      // a published+active calculator, and ONLY attributed to that
+      // calculator's real owner. This is the write path that makes a
+      // serverless widget safe.
+      allow create: if incoming().keys().hasOnly(
+            ['calcId', 'ownerUid', 'inputs', 'result', 'contact', 'createdAt', 'page'])
+        && incoming().keys().hasAll(
+            ['calcId', 'ownerUid', 'inputs', 'result', 'contact', 'createdAt'])
+        && incoming().calcId is string
+        && incoming().calcId.size() > 0 && incoming().calcId.size() <= 64
+        && incoming().inputs is map
+        && incoming().inputs.keys().size() <= 30
+        && incoming().result is number
+        && incoming().contact is map
+        && incoming().contact.keys().hasOnly(['name', 'email', 'phone'])
+        && incoming().contact.email is string
+        && incoming().contact.email.size() <= 200
+        && incoming().contact.email.matches('.+@.+\\..+')
+        && (!('name' in incoming().contact)
+            || (incoming().contact.name is string && incoming().contact.name.size() <= 120))
+        && (!('phone' in incoming().contact)
+            || (incoming().contact.phone is string && incoming().contact.phone.size() <= 40))
+        && incoming().createdAt is timestamp
+        && (!('page' in incoming())
+            || (incoming().page is string && incoming().page.size() <= 500))
+        && calcDoc().data.published == true
+        && calcDoc().data.active == true
+        && incoming().ownerUid == calcDoc().data.ownerUid;
+
+      // Only the calculator owner can ever read leads. Queries must filter
+      // ownerUid == request.auth.uid to satisfy the list rule.
+      allow get, list: if isOwner(resource.data.ownerUid);
+      allow delete: if isOwner(resource.data.ownerUid);
+      allow update: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // settings — per-user notification preferences
+    // ------------------------------------------------------------------
+    match /settings/{uid} {
+      allow get: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && incoming().keys().hasOnly(['leadAlerts', 'notifyEmail'])
+        && (!('leadAlerts' in incoming()) || incoming().leadAlerts is bool)
+        && (!('notifyEmail' in incoming())
+            || (incoming().notifyEmail is string && incoming().notifyEmail.size() <= 200));
+      allow delete: if isOwner(uid);
+    }
+
+    // ------------------------------------------------------------------
+    // Stripe extension collections (invertase/firestore-stripe-payments)
+    // The extension writes with the Admin SDK, which bypasses these rules —
+    // clients only ever need read access, plus create on checkout_sessions.
+    // ------------------------------------------------------------------
+    match /customers/{uid} {
+      allow read: if isOwner(uid);
+
+      match /checkout_sessions/{id} {
+        allow read, create: if isOwner(uid);
+      }
+      match /subscriptions/{id} {
+        allow read: if isOwner(uid);
+      }
+      match /payments/{id} {
+        allow read: if isOwner(uid);
+      }
+    }
+
+    match /products/{id} {
+      allow read: if true;
+      match /prices/{priceId} {
+        allow read: if true;
+      }
+      match /tax_rates/{taxId} {
+        allow read: if true;
+      }
+    }
+
+    // Trigger Email queue — no client access at all.
+    match /mail/{id} {
+      allow read, write: if false;
+    }
+  }
+}

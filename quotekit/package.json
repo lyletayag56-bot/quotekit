@@ -1,0 +1,21 @@
+{
+  "name": "quotekit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Embeddable instant-quote calculators for contractors. Widget + builder dashboard + marketing site on one Firebase project.",
+  "scripts": {
+    "build": "rm -rf dist && npm run build:site && npm run build:app && npm run build:widget",
+    "build:site": "cd marketing && npm run build",
+    "build:app": "mkdir -p dist/app && cp -r app/. dist/app/",
+    "build:widget": "cd widget && npm run build",
+    "watch:widget": "cd widget && npm run watch",
+    "watch:site": "cd marketing && npm run watch",
+    "emulators": "firebase emulators:start",
+    "dev": "npm run build && firebase emulators:start",
+    "test:widget": "cd widget && npm test",
+    "deploy": "npm run build && firebase deploy",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "deploy:rules": "firebase deploy --only firestore",
+    "postinstall": "cd widget && npm install && cd ../marketing && npm install"
+  }
+}

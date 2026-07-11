@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title or site.tagline + " | " + site.name }}</title>
+  <meta name="description" content="{{ description or site.description }}" />
+  <meta property="og:title" content="{{ title or site.tagline }}" />
+  <meta property="og:description" content="{{ description or site.description }}" />
+  <meta property="og:type" content="website" />
+  <link rel="canonical" href="{{ site.url }}{{ page.url }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="/"><span class="brand-bolt">⚡</span>QuoteKit</a>
+      <nav class="site-nav">
+        <a href="/#how">How it works</a>
+        <a href="/#calculators">Calculators</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/docs/">Docs</a>
+        <a href="/app/">Sign in</a>
+        <a class="btn btn-primary" href="/app/">Get started free</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    {{ content | safe }}
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-grid">
+      <div>
+        <a class="brand" href="/"><span class="brand-bolt">⚡</span>QuoteKit</a>
+        <p class="footer-note">Instant-quote calculators for contractor websites. One script tag. Your rates. Their contact details.</p>
+      </div>
+      <div>
+        <h4 class="footer-head">Calculators</h4>
+        <ul class="footer-list">
+          {%- for calc in industries %}
+          <li><a href="/calculators/{{ calc.slug }}/">{{ calc.config.title }}</a></li>
+          {%- endfor %}
+        </ul>
+      </div>
+      <div>
+        <h4 class="footer-head">Product</h4>
+        <ul class="footer-list">
+          <li><a href="/docs/">Embed docs</a></li>
+          <li><a href="/#pricing">Pricing</a></li>
+          <li><a href="/app/">Dashboard</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="shell footer-legal">© {{ '' | year }} QuoteKit. Widgets stay on your site as long as your plan is active.</div>
+  </footer>
+</body>
+</html>

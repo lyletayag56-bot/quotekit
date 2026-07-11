@@ -1,0 +1,159 @@
+---
+layout: layout.njk
+title: "Instant-quote calculators for contractor websites | QuoteKit"
+description: "Give visitors an instant estimate and capture the lead. One script tag, your rates, your formula. Free to start — $15/mo to remove the badge."
+---
+
+<section class="hero ruled">
+  <div class="shell hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow">For contractors, by the square foot</p>
+      <h1>Turn “what would this cost?” into a lead with a phone number.</h1>
+      <p class="hero-sub">QuoteKit puts an instant-quote calculator on your website — priced with <em>your</em> rates, running <em>your</em> formula. Visitors get a number in seconds. You get their name, email, and everything they entered.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary btn-lg" href="/app/">Build yours free</a>
+        <a class="btn btn-lg" href="#calculators">See live examples</a>
+      </div>
+      <p class="hero-fine mono">One script tag · no code · free tier forever</p>
+    </div>
+    <div class="hero-demo">
+      <div class="demo-card">
+        <p class="demo-label mono">Live demo — try it</p>
+        <script async src="/widget.js" data-config='{{ industries[0].config | jsonAttr | safe }}'></script>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <div class="shell narrow">
+    <p class="eyebrow">How it works</p>
+    <h2>From zero to quoting in one coffee break.</h2>
+    <ol class="estimate-lines">
+      <li>
+        <span class="line-label"><strong>Paste one script tag</strong> where the calculator should live — WordPress, Squarespace, Wix, hand-rolled HTML, anything.</span>
+        <span class="leader"></span>
+        <span class="line-value mono">30 sec</span>
+      </li>
+      <li>
+        <span class="line-label"><strong>Set your rates and formula</strong> in the builder — <code class="mono">(sqft * rate) * finish + base_fee</code> — and pick which contact details to collect.</span>
+        <span class="leader"></span>
+        <span class="line-value mono">5 min</span>
+      </li>
+      <li>
+        <span class="line-label"><strong>Leads land in your dashboard</strong> with the quote they saw and every input behind it. Optional email alert the moment one arrives.</span>
+        <span class="leader"></span>
+        <span class="line-value mono">ongoing</span>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="shell feature-grid">
+    <div class="feature">
+      <h3>Won’t fight your website</h3>
+      <p>The widget renders inside a Shadow DOM — your theme’s CSS can’t break it, and it can’t touch your theme. It just works, on any site, in any page builder.</p>
+    </div>
+    <div class="feature">
+      <h3>Your math, not ours</h3>
+      <p>Write the formula the way you actually price jobs. Rates live in your dashboard, so a price change on Monday is live on your site by Monday.</p>
+    </div>
+    <div class="feature">
+      <h3>Leads with full context</h3>
+      <p>Every lead includes the inputs, the number they saw, and the page they were on. Your follow-up call starts halfway done.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="calculators">
+  <div class="shell">
+    <p class="eyebrow">Free templates</p>
+    <h2>Pick your trade. The calculator is already built.</h2>
+    <div class="calc-grid">
+      {%- for calc in industries %}
+      <a class="calc-tile" href="/calculators/{{ calc.slug }}/">
+        <h3>{{ calc.config.title }}</h3>
+        <p>{{ calc.intro | truncate(110) }}</p>
+        <span class="tile-cta">See it live →</span>
+      </a>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt" id="pricing">
+  <div class="shell narrow">
+    <p class="eyebrow">Pricing</p>
+    <h2>Priced like a line item, not a software budget.</h2>
+    <div class="price-table">
+      <div class="price-plan">
+        <div class="price-plan-head">
+          <h3>Free</h3>
+          <p class="plan-amount mono">$0<small>/mo</small></p>
+        </div>
+        <ul class="estimate-lines small">
+          <li><span class="line-label">1 live calculator</span><span class="leader"></span><span class="line-value">✓</span></li>
+          <li><span class="line-label">Unlimited quotes &amp; leads</span><span class="leader"></span><span class="line-value">✓</span></li>
+          <li><span class="line-label">“Powered by QuoteKit” badge</span><span class="leader"></span><span class="line-value">shown</span></li>
+        </ul>
+        <a class="btn btn-block" href="/app/">Start free</a>
+      </div>
+      <div class="price-plan is-featured">
+        <div class="price-plan-head">
+          <h3>Starter</h3>
+          <p class="plan-amount mono">$15<small>/mo</small></p>
+        </div>
+        <ul class="estimate-lines small">
+          <li><span class="line-label">1 live calculator</span><span class="leader"></span><span class="line-value">✓</span></li>
+          <li><span class="line-label">Badge removed</span><span class="leader"></span><span class="line-value">✓</span></li>
+          <li><span class="line-label">New-lead email alerts</span><span class="leader"></span><span class="line-value">✓</span></li>
+        </ul>
+        <a class="btn btn-primary btn-block" href="/app/">Choose Starter</a>
+      </div>
+      <div class="price-plan">
+        <div class="price-plan-head">
+          <h3>Pro</h3>
+          <p class="plan-amount mono">$29<small>/mo</small></p>
+        </div>
+        <ul class="estimate-lines small">
+          <li><span class="line-label">Up to 5 calculators</span><span class="leader"></span><span class="line-value">✓</span></li>
+          <li><span class="line-label">Everything in Starter</span><span class="leader"></span><span class="line-value">✓</span></li>
+          <li><span class="line-label">Priority support</span><span class="leader"></span><span class="line-value">✓</span></li>
+        </ul>
+        <a class="btn btn-block" href="/app/">Choose Pro</a>
+      </div>
+    </div>
+    <p class="pricing-note">Cancel anytime. If a paid plan lapses, the embedded widget pauses until you re-publish it on Free — your calculators and leads are never deleted.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="shell narrow">
+    <p class="eyebrow">Questions</p>
+    <h2>The fine print, in plain English.</h2>
+    <details class="faq">
+      <summary>Will it work with my website builder?</summary>
+      <p>Yes. If your builder lets you paste an HTML snippet (WordPress, Squarespace, Wix, Webflow, Shopify, GoDaddy, and hand-coded sites all do), the widget works. It isolates its own styles, so it can’t clash with your theme.</p>
+    </details>
+    <details class="faq">
+      <summary>Are the quotes binding?</summary>
+      <p>No — they’re estimates built from rates you set, and the result label is yours to word (“Estimated cost”, “Starting from”, whatever fits how you sell). You control every number in the math.</p>
+    </details>
+    <details class="faq">
+      <summary>Where do the leads go?</summary>
+      <p>Into your QuoteKit dashboard the instant they’re submitted, with a chart of leads over time and CSV export. Turn on alerts to get an email for each new lead.</p>
+    </details>
+    <details class="faq">
+      <summary>What happens if I cancel?</summary>
+      <p>The widget on your site pauses and shows a quiet “temporarily unavailable” note. Your account, calculators, and leads stay intact — re-publish on the Free plan (with the badge) or resubscribe and it comes right back.</p>
+    </details>
+  </div>
+</section>
+
+<section class="section cta-band ruled">
+  <div class="shell narrow center">
+    <h2>Your next lead is on your website right now, wondering what it costs.</h2>
+    <a class="btn btn-primary btn-lg" href="/app/">Build your calculator free</a>
+  </div>
+</section>
